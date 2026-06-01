@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Behavioral Profile Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root {
+  --g:       #00B050;
+  --g-dk:    #007A38;
+  --g-lt:    #E6F5EE;
+  --g-mid:   #C2E8D2;
+  --txt:     #0D1B2A;
+  --muted:   #6B7A8D;
+  --border:  #E2E8F0;
+  --card:    #FFFFFF;
+  --bg:      #F3F7F5;
+  --shadow:  0 2px 20px rgba(0,0,0,.07);
+  --r:       16px;
+  --ease:    cubic-bezier(.4,0,.2,1);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--txt);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── HEADER ─── */
+.hdr {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 200;
+}
+.hdr-inner {
+  max-width: 680px; margin: 0 auto;
+  padding: 14px 20px 0;
+}
+.hdr-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+}
+.brand-dot {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: var(--g);
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-dot svg { width: 18px; height: 18px; }
+.brand-name { font-weight: 700; font-size: 15px; letter-spacing: -.2px; }
+.step-counter {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px; color: var(--muted);
+}
+
+/* Step bubbles */
+.bubbles {
+  display: flex; align-items: center; gap: 0;
+  overflow-x: auto; padding-bottom: 14px;
+  scrollbar-width: none;
+}
+.bubbles::-webkit-scrollbar { display: none; }
+.bwrap { display: flex; align-items: center; flex-shrink: 0; }
+.bconn {
+  width: 20px; height: 2px;
+  background: var(--border);
+  transition: background .4s var(--ease);
+}
+.bconn.done { background: var(--g); }
+.bubble {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--border);
+  background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  transition: all .3s var(--ease);
+  flex-shrink: 0;
+}
+.bubble.active {
+  border-color: var(--g); background: var(--g);
+  color: #fff; box-shadow: 0 0 0 4px var(--g-mid);
+}
+.bubble.done {
+  border-color: var(--g); background: var(--g-lt); color: var(--g);
+}
+
+/* Progress bar */
+.prog-bar { height: 3px; background: var(--g-mid); }
+.prog-fill {
+  height: 100%; background: var(--g);
+  transition: width .5s var(--ease);
+  width: 0%;
+}
+
+/* ─── MAIN ─── */
+.main {
+  max-width: 680px; margin: 0 auto;
+  padding: 28px 16px 100px;
+}
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--card);
+  border-radius: var(--r);
+  padding: 32px 28px;
+  box-shadow: var(--shadow);
+  display: none;
+  position: relative;
+}
+.card.visible {
+  display: block;
+  animation: slideIn .38s var(--ease) both;
+}
+.card.visible.back {
+  animation: slideInBack .38s var(--ease) both;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(36px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInBack {
+  from { opacity: 0; transform: translateX(-36px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ─── STEP HEADER ─── */
+.s-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px; font-weight: 500;
+  letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--g); margin-bottom: 8px;
+}
+.s-title {
+  font-size: 22px; font-weight: 800;
+  letter-spacing: -.4px; line-height: 1.2;
+  margin-bottom: 6px;
+}
+.s-desc {
+  font-size: 13.5px; color: var(--muted);
+  line-height: 1.65; margin-bottom: 28px;
+}
+
+/* ─── FIELD ─── */
+.fg { margin-bottom: 26px; }
+.fg:last-of-type { margin-bottom: 0; }
+
+.fl {
+  font-size: 13.5px; font-weight: 600;
+  display: flex; justify-content: space-between;
+  align-items: flex-start; gap: 8px;
+  margin-bottom: 4px;
+}
+.fv {
+  font-family: 'DM Mono', monospace;
+  font-size: 12.5px; color: var(--g); font-weight: 500;
+  white-space: nowrap; flex-shrink: 0;
+}
+.fsub {
+  font-size: 12px; color: var(--muted);
+  line-height: 1.55; margin-bottom: 10px;
+}
+
+/* ─── INPUT TEXT ─── */
+.txt-in {
+  width: 100%; padding: 11px 14px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-family: 'Outfit', sans-serif; font-size: 14px;
+  color: var(--txt); background: #fff; outline: none;
+  transition: border-color .2s;
+}
+.txt-in:focus { border-color: var(--g); }
+.txt-in::placeholder { color: #aab; }
+
+/* ─── RANGE ─── */
+input[type="range"] {
+  width: 100%; height: 5px;
+  -webkit-appearance: none;
+  background: var(--g-mid);
+  border-radius: 3px; outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--g);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,176,80,.35);
+  cursor: pointer;
+  transition: transform .15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--g); border: 3px solid #fff;
+  cursor: pointer;
+}
+.scale-lbs {
+  display: flex; justify-content: space-between;
+  font-size: 10.5px; color: var(--muted); margin-top: 5px;
+}
+
+/* ─── STEPPER ─── */
+.stepper {
+  display: flex; align-items: center; gap: 0;
+  background: var(--bg); border-radius: 12px;
+  border: 1.5px solid var(--border);
+  overflow: hidden; width: fit-content;
+}
+.s-btn {
+  width: 40px; height: 40px; border: none;
+  background: transparent; cursor: pointer;
+  font-size: 20px; font-weight: 300; color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.s-btn:hover { background: var(--g-lt); color: var(--g); }
+.s-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 16px; font-weight: 500;
+  min-width: 52px; text-align: center;
+  color: var(--txt);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 0 4px;
+}
+
+/* ─── RADIO PILLS ─── */
+.pills { display: flex; flex-wrap: wrap; gap: 7px; }
+.pill input { display: none; }
+.pill label {
+  display: block; padding: 8px 15px;
+  border: 1.5px solid var(--border); border-radius: 20px;
+  font-size: 12.5px; font-weight: 500;
+  cursor: pointer; color: var(--muted);
+  transition: all .2s var(--ease);
+  user-select: none;
+}
+.pill label:hover { border-color: var(--g); color: var(--g); }
+.pill input:checked + label {
+  background: var(--g); border-color: var(--g); color: #fff;
+}
+
+/* ─── MAP ─── */
+.map-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.loc-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 18px;
+  background: #fff; border: 1.5px solid var(--g);
+  border-radius: 10px; color: var(--g);
+  font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.loc-btn:hover { background: var(--g-lt); }
+.loc-btn:disabled { opacity: .5; cursor: not-allowed; }
+.loc-chip {
+  display: none; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  background: var(--g-lt); border-radius: 20px;
+  font-size: 12px; color: var(--g-dk); font-weight: 600;
+}
+.loc-chip.show { display: flex; }
+#map {
+  width: 100%; height: 220px;
+  border-radius: 12px; border: 1.5px solid var(--border);
+  overflow: hidden;
+}
+
+/* ─── DIVIDER ─── */
+.divider {
+  height: 1px; background: var(--border);
+  margin: 26px 0;
+}
+
+/* ─── BUTTONS ─── */
+.btn-row {
+  display: flex; gap: 10px; margin-top: 30px;
+}
+.btn-back {
+  padding: 13px 22px; border-radius: 11px;
+  border: 1.5px solid var(--border);
+  background: #fff; color: var(--muted);
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+  flex-shrink: 0;
+}
+.btn-back:hover { border-color: var(--muted); color: var(--txt); }
+.btn-next {
+  flex: 1; padding: 13px 22px; border-radius: 11px;
+  border: none; background: var(--g);
+  color: #fff; font-family: 'Outfit', sans-serif;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all .2s var(--ease);
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.btn-next:hover {
+  background: var(--g-dk);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,176,80,.3);
+}
+.btn-next:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ─── REVIEW ─── */
+.rev-sec { margin-bottom: 18px; }
+.rev-sec-hd {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px; font-weight: 500; letter-spacing: 1.8px;
+  text-transform: uppercase; color: var(--muted);
+  padding-bottom: 7px; border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.rev-row {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 6px 0;
+  font-size: 12.5px;
+}
+.rev-k { color: var(--muted); flex: 1; text-transform: capitalize; }
+.rev-v {
+  font-family: 'DM Mono', monospace;
+  font-weight: 500; color: var(--txt);
+  text-align: right;
+}
+
+/* ─── NOTICE ─── */
+.notice {
+  background: #FFFBEA; border: 1px solid #FDE68A;
+  border-radius: 10px; padding: 12px 14px;
+  font-size: 12px; color: #92400E;
+  line-height: 1.6; margin-bottom: 22px;
+}
+.notice code {
+  background: #FEF3C7; padding: 1px 5px;
+  border-radius: 4px; font-size: 11px;
+}
+
+/* ─── SUCCESS ─── */
+.success {
+  display: none; text-align: center;
+  padding: 56px 28px;
+}
+.success.show { display: block; }
+.s-circle {
+  width: 76px; height: 76px; border-radius: 50%;
+  background: var(--g-lt); border: 3px solid var(--g);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 22px;
+  animation: pop .5s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.s-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+.s-body {
+  font-size: 13.5px; color: var(--muted);
+  line-height: 1.65; margin-bottom: 28px;
+}
+.ref-id {
+  font-family: 'DM Mono', monospace;
+  color: var(--g); font-weight: 500;
+}
+.btn-restart {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 32px; border-radius: 11px;
+  border: none; background: var(--g); color: #fff;
+  font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all .2s;
+}
+.btn-restart:hover { background: var(--g-dk); }
+
+/* ─── WELCOME ─── */
+.welcome-icon {
+  width: 56px; height: 56px; border-radius: 14px;
+  background: var(--g-lt); border: 2px solid var(--g-mid);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+}
+.pill-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 26px; }
+.info-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 12px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 20px;
+  font-size: 12px; color: var(--muted); font-weight: 500;
+}
+
+/* ─── MISC ─── */
+@media (max-width: 480px) {
+  .card { padding: 24px 18px; }
+  .s-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="hdr">
+  <div class="hdr-inner">
+    <div class="hdr-top">
+      <div class="brand">
+        <div class="brand-dot">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <span class="brand-name">Behavioral Assessment</span>
+      </div>
+      <span class="step-counter" id="step-counter">Step 1 of 8</span>
+    </div>
+    <div class="bubbles" id="bubbles"></div>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main" id="main">
+
+  <!-- ── STEP 0: Welcome ── -->
+  <div class="card visible" id="s0">
+    <div class="welcome-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--g)" stroke-width="2" stroke-linecap="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+    <p class="s-tag">Welcome · Step 1 of 8</p>
+    <h1 class="s-title">Your Behavioral Profile</h1>
+    <p class="s-desc">This short assessment builds your financial behavioral profile. Answer as accurately as possible — there are no right or wrong answers. All data is encrypted and used only for credit evaluation.</p>
+
+    <div class="pill-row">
+      <div class="info-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        ~5 minutes
+      </div>
+      <div class="info-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Data encrypted
+      </div>
+      <div class="info-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg>
+        8 short sections
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Full Name</div>
+      <div class="fsub">Your legal first and last name</div>
+      <input class="txt-in" id="f-name" type="text" placeholder="e.g. Adaeze Okafor" autocomplete="name">
+    </div>
+
+    <div class="fg">
+      <div class="fl">Phone Number</div>
+      <div class="fsub">Used as your unique profile reference — same number linked to your wallet</div>
+      <input class="txt-in" id="f-phone" type="tel" placeholder="+234 801 234 5678" autocomplete="tel">
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-next" onclick="next(0)">Get Started →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 1: Communication ── -->
+  <div class="card" id="s1">
+    <p class="s-tag">Module 1 · Step 2 of 8</p>
+    <h2 class="s-title">Communication Patterns</h2>
+    <p class="s-desc">How you communicate and manage your digital contacts reveals a lot about social stability and financial stress signals.</p>
+
+    <div class="fg">
+      <div class="fl">Calls received vs calls made <span class="fv" id="v-ratio">1.0×</span></div>
+      <div class="fsub">Think of the last 30 days — for every 1 call you make, how many come in? (1× = equal, 5× = 5 incoming per outgoing)</div>
+      <input type="range" id="f-ratio" min="0.1" max="10" step="0.1" value="1.0"
+        oninput="setv('v-ratio', parseFloat(this.value).toFixed(1)+'×')">
+      <div class="scale-lbs"><span>Equal (1×)</span><span>Mostly incoming (10×)</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Unknown callers in last 30 days</div>
+      <div class="fsub">Incoming calls from numbers NOT saved in your contacts — including repeat callers from unknown numbers</div>
+      <div class="stepper">
+        <button class="s-btn" onclick="adj('f-unlisted',-1)">−</button>
+        <span class="s-val" id="f-unlisted">0</span>
+        <button class="s-btn" onclick="adj('f-unlisted',1)">+</button>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Contacts saved with full name <span class="fv" id="v-contacts">50%</span></div>
+      <div class="fsub">What % of your phonebook entries are saved as "FirstName LastName" vs just a number or nickname?</div>
+      <input type="range" id="f-contacts" min="0" max="100" step="5" value="50"
+        oninput="setv('v-contacts', this.value+'%')">
+      <div class="scale-lbs"><span>Mostly raw numbers</span><span>All fully named</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Age of your primary email account <span class="fv" id="v-email-age">3 yrs</span></div>
+      <div class="fsub">The email you use for banking, OPay, and financial services. Roughly how old is it?</div>
+      <input type="range" id="f-email-age" min="0" max="20" step="0.5" value="3"
+        oninput="setv('v-email-age', this.value+' yrs')">
+      <div class="scale-lbs"><span>Brand new (&lt;1 yr)</span><span>20+ years</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Financial stress alerts in your notifications</div>
+      <div class="fsub">How often do you see notifications saying "Overdue", "Declined", "Action Required", or "Repayment Due"?</div>
+      <div class="pills">
+        <div class="pill"><input type="radio" name="r-alerts" id="ra0" value="0.01" checked><label for="ra0">Rarely / Never</label></div>
+        <div class="pill"><input type="radio" name="r-alerts" id="ra1" value="0.10"><label for="ra1">Occasionally</label></div>
+        <div class="pill"><input type="radio" name="r-alerts" id="ra2" value="0.30"><label for="ra2">Frequently</label></div>
+        <div class="pill"><input type="radio" name="r-alerts" id="ra3" value="0.55"><label for="ra3">Very often</label></div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">How often do you cancel scheduled plans? <span class="fv" id="v-cancel">20%</span></div>
+      <div class="fsub">Of all appointments, meetings, or plans you schedule — roughly what percentage do you end up cancelling?</div>
+      <input type="range" id="f-cancel" min="0" max="100" step="5" value="20"
+        oninput="setv('v-cancel', this.value+'%')">
+      <div class="scale-lbs"><span>Almost never cancel</span><span>Cancel very often</span></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="back(1)">← Back</button>
+      <button class="btn-next" onclick="next(1)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: Professional ── -->
+  <div class="card" id="s2">
+    <p class="s-tag">Module 2 · Step 3 of 8</p>
+    <h2 class="s-title">Professional Profile</h2>
+    <p class="s-desc">Your career trajectory, skill demand, and the financial health of your network help us assess long-term earning stability.</p>
+
+    <div class="fg">
+      <div class="fl">How in-demand is your line of work?</div>
+      <div class="fsub">Think about job availability, salary trends, and growth prospects for what you do</div>
+      <div class="pills">
+        <div class="pill"><input type="radio" name="r-skill" id="rs0" value="0.15" checked><label for="rs0">Low demand</label></div>
+        <div class="pill"><input type="radio" name="r-skill" id="rs1" value="0.40"><label for="rs1">Moderate</label></div>
+        <div class="pill"><input type="radio" name="r-skill" id="rs2" value="0.65"><label for="rs2">High demand</label></div>
+        <div class="pill"><input type="radio" name="r-skill" id="rs3" value="0.90"><label for="rs3">Very high demand</label></div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">LinkedIn / CV / work profile updates in the last 90 days</div>
+      <div class="fsub">How many times have you updated your résumé, LinkedIn profile, or any professional profile in the last 3 months?</div>
+      <div class="stepper">
+        <button class="s-btn" onclick="adj('f-profvel',-1)">−</button>
+        <span class="s-val" id="f-profvel">1</span>
+        <button class="s-btn" onclick="adj('f-profvel',1)">+</button>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Financial standing of your close circle <span class="fv" id="v-peer">5.0 / 10</span></div>
+      <div class="fsub">Rate the average financial stability of your 5–10 closest colleagues and friends (1 = mostly struggling, 10 = very financially stable)</div>
+      <input type="range" id="f-peer" min="1" max="10" step="0.5" value="5"
+        oninput="setv('v-peer', parseFloat(this.value).toFixed(1)+' / 10')">
+      <div class="scale-lbs"><span>Mostly struggling (1)</span><span>Very stable (10)</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Online course completion rate <span class="fv" id="v-learn">50%</span></div>
+      <div class="fsub">Of all online courses you've ever started (Udemy, Coursera, YouTube playlists, etc.), roughly what % did you fully finish?</div>
+      <input type="range" id="f-learn" min="0" max="100" step="5" value="50"
+        oninput="setv('v-learn', this.value+'%')">
+      <div class="scale-lbs"><span>Rarely finish (0%)</span><span>Always complete (100%)</span></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="back(2)">← Back</button>
+      <button class="btn-next" onclick="next(2)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: Financial Habits ── -->
+  <div class="card" id="s3">
+    <p class="s-tag">Module 3 · Step 4 of 8</p>
+    <h2 class="s-title">Financial Habits</h2>
+    <p class="s-desc">These questions help us understand your relationship with money — how quickly you spend, how long savings last, and how regular your income is.</p>
+
+    <div class="fg">
+      <div class="fl">How fast do you spend after receiving money? <span class="fv" id="v-decay">40%</span></div>
+      <div class="fsub">After a salary or transfer lands, roughly what % of that deposit do you spend within the first 24 hours?</div>
+      <input type="range" id="f-decay" min="0" max="100" step="5" value="40"
+        oninput="setv('v-decay', this.value+'%')">
+      <div class="scale-lbs"><span>Save most (0%)</span><span>Spend almost all (100%)</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Days until your account returns to its usual low baseline</div>
+      <div class="fsub">After a big deposit, how many days before your balance drops back down to your everyday low amount?</div>
+      <div class="stepper">
+        <button class="s-btn" onclick="adj('f-drawdown',-1,1)">−</button>
+        <span class="s-val" id="f-drawdown">14</span>
+        <button class="s-btn" onclick="adj('f-drawdown',1,1)">+</button>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">How varied are your spending categories?</div>
+      <div class="fsub">Do you mostly spend on the same predictable things (food, transport, bills), or across many different types of purchases?</div>
+      <div class="pills">
+        <div class="pill"><input type="radio" name="r-merch" id="rm0" value="1.2" checked><label for="rm0">Very focused (food & bills only)</label></div>
+        <div class="pill"><input type="radio" name="r-merch" id="rm1" value="2.5"><label for="rm1">Mostly predictable</label></div>
+        <div class="pill"><input type="radio" name="r-merch" id="rm2" value="4.5"><label for="rm2">Quite varied</label></div>
+        <div class="pill"><input type="radio" name="r-merch" id="rm3" value="7.0"><label for="rm3">Very spread out</label></div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Days your account was near-empty in the last 30 days</div>
+      <div class="fsub">How many days out of the last 30 was your wallet / account balance very close to zero (within 5% of empty)?</div>
+      <div class="stepper">
+        <button class="s-btn" onclick="adj('f-buffer',-1,0,30)">−</button>
+        <span class="s-val" id="f-buffer">3</span>
+        <button class="s-btn" onclick="adj('f-buffer',1,0,30)">+</button>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">How regular / predictable is your income?</div>
+      <div class="fsub">Think about when money lands in your account — is it always at the same time, or does it vary a lot?</div>
+      <div class="pills">
+        <div class="pill"><input type="radio" name="r-inflow" id="ri0" value="1.5" checked><label for="ri0">Fixed salary (always same day)</label></div>
+        <div class="pill"><input type="radio" name="r-inflow" id="ri1" value="12"><label for="ri1">Weekly / biweekly</label></div>
+        <div class="pill"><input type="radio" name="r-inflow" id="ri2" value="36"><label for="ri2">Irregular gig work</label></div>
+        <div class="pill"><input type="radio" name="r-inflow" id="ri3" value="72"><label for="ri3">Very unpredictable</label></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="back(3)">← Back</button>
+      <button class="btn-next" onclick="next(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: Location & Mobility ── -->
+  <div class="card" id="s4">
+    <p class="s-tag">Module 4 · Step 5 of 8</p>
+    <h2 class="s-title">Location & Movement</h2>
+    <p class="s-desc">Your geographic patterns help us understand your operating area and assess for location-based risk signals.</p>
+
+    <div class="fg">
+      <div class="fl">Detect your current location</div>
+      <div class="fsub">We use this to determine your area cluster. Your exact coordinates are never shared.</div>
+      <div class="map-row">
+        <button class="loc-btn" id="loc-btn" onclick="detectLoc()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>
+          Detect My Location
+        </button>
+        <div class="loc-chip" id="loc-chip">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--g)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <span id="loc-txt">Detected</span>
+        </div>
+      </div>
+      <div id="map"></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">How far do you typically travel from home? <span class="fv" id="v-radius">10 km</span></div>
+      <div class="fsub">Think about your regular daily routes — commute, market, church, work. The circle on the map shows your range. Maximum: 50 km.</div>
+      <input type="range" id="f-radius" min="1" max="50" step="1" value="10"
+        oninput="updateRadius(this.value)">
+      <div class="scale-lbs"><span>Very local (1 km)</span><span>Wide area (50 km)</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">How predictable / routine is your daily movement? <span class="fv" id="v-pred">70%</span></div>
+      <div class="fsub">Do you go to the same places at the same times most days, or does your location vary a lot?</div>
+      <input type="range" id="f-pred" min="0" max="100" step="5" value="70"
+        oninput="setv('v-pred', this.value+'%')">
+      <div class="scale-lbs"><span>Varies a lot</span><span>Very routine & predictable</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">How far do you typically travel to do banking?</div>
+      <div class="fsub">When you need to use an ATM, POS terminal, or bank branch — do you use nearby options, or do you travel far?</div>
+      <div class="pills">
+        <div class="pill"><input type="radio" name="r-border" id="rb0" value="0.05" checked><label for="rb0">Always nearby</label></div>
+        <div class="pill"><input type="radio" name="r-border" id="rb1" value="0.20"><label for="rb1">Sometimes travel a bit</label></div>
+        <div class="pill"><input type="radio" name="r-border" id="rb2" value="0.45"><label for="rb2">Often travel far</label></div>
+        <div class="pill"><input type="radio" name="r-border" id="rb3" value="0.75"><label for="rb3">Usually far away</label></div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Hours near betting shops or loan offices in the last 30 days</div>
+      <div class="fsub">Approximate total hours you've spent at or near betting shops, lotteries, informal loan agents, or money lenders</div>
+      <div class="stepper">
+        <button class="s-btn" onclick="adj('f-poi',-1)">−</button>
+        <span class="s-val" id="f-poi">0</span>
+        <button class="s-btn" onclick="adj('f-poi',1)">+</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="back(4)">← Back</button>
+      <button class="btn-next" onclick="next(4)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 5: Device & Lifestyle ── -->
+  <div class="card" id="s5">
+    <p class="s-tag">Module 5 · Step 6 of 8</p>
+    <h2 class="s-title">Device & Lifestyle</h2>
+    <p class="s-desc">How you maintain your phone and physical assets acts as a proxy for planning habits and resource discipline.</p>
+
+    <div class="fg">
+      <div class="fl">How often do you service major assets? <span class="fv" id="v-maint">every 90 days</span></div>
+      <div class="fsub">Think about servicing your car, generator, or major appliances. What's the average gap between check-ups?</div>
+      <input type="range" id="f-maint" min="30" max="400" step="15" value="90"
+        oninput="setv('v-maint', 'every '+this.value+' days')">
+      <div class="scale-lbs"><span>Monthly (~30 days)</span><span>Rarely (1+ year)</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">How quickly do you install phone software updates?</div>
+      <div class="fsub">When your Android or iOS shows a new security or OS update — how fast do you typically install it?</div>
+      <div class="pills">
+        <div class="pill"><input type="radio" name="r-os" id="ro0" value="2" checked><label for="ro0">Immediately (&lt;2 hrs)</label></div>
+        <div class="pill"><input type="radio" name="r-os" id="ro1" value="24"><label for="ro1">Within a day</label></div>
+        <div class="pill"><input type="radio" name="r-os" id="ro2" value="168"><label for="ro2">Within a week</label></div>
+        <div class="pill"><input type="radio" name="r-os" id="ro3" value="720"><label for="ro3">After a month+</label></div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Your phone's current storage usage <span class="fv" id="v-storage">60%</span></div>
+      <div class="fsub">Check Settings → Storage on your phone. What percentage is used? (e.g. 45GB used of 64GB = 70%)</div>
+      <input type="range" id="f-storage" min="0" max="100" step="5" value="60"
+        oninput="setv('v-storage', this.value+'%')">
+      <div class="scale-lbs"><span>Mostly free (0%)</span><span>Almost full (100%)</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Phone screen cracks or replacements (lifetime total)</div>
+      <div class="fsub">How many times has your phone screen been cracked, shattered, or replaced — across all your phones?</div>
+      <div class="stepper">
+        <button class="s-btn" onclick="adj('f-screen',-1)">−</button>
+        <span class="s-val" id="f-screen">0</span>
+        <button class="s-btn" onclick="adj('f-screen',1)">+</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="back(5)">← Back</button>
+      <button class="btn-next" onclick="next(5)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 6: Environment ── -->
+  <div class="card" id="s6">
+    <p class="s-tag">Module 6 · Step 7 of 8</p>
+    <h2 class="s-title">Your Environment</h2>
+    <p class="s-desc">These final questions are about external factors that affect your finances beyond your personal control — your neighborhood, employer, and infrastructure.</p>
+
+    <div class="fg">
+      <div class="fl">How expensive is your area vs. the city average? <span class="fv" id="v-inflation">+10%</span></div>
+      <div class="fsub">Do you pay more for everyday items — food, transport, rent — compared to other parts of your city? Estimate the premium.</div>
+      <input type="range" id="f-inflation" min="0" max="50" step="2" value="10"
+        oninput="setv('v-inflation', '+'+this.value+'%')">
+      <div class="scale-lbs"><span>Same as city average</span><span>Much more expensive (+50%)</span></div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">How stable is your primary income source?</div>
+      <div class="fsub">Consider the risk of your employer going under, your sector shrinking, or your income suddenly stopping</div>
+      <div class="pills">
+        <div class="pill"><input type="radio" name="r-emp" id="re0" value="0.10" checked><label for="re0">Very stable (govt / large corp)</label></div>
+        <div class="pill"><input type="radio" name="r-emp" id="re1" value="0.35"><label for="re1">Mostly stable</label></div>
+        <div class="pill"><input type="radio" name="r-emp" id="re2" value="0.65"><label for="re2">Some risk (SME / startup)</label></div>
+        <div class="pill"><input type="radio" name="r-emp" id="re3" value="0.90"><label for="re3">High risk / sole self-employed</label></div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fl">Average hours without power per week <span class="fv" id="v-power">10 hrs</span></div>
+      <div class="fsub">Think about all power outages and load-shedding in your area in a typical week — total hours with no grid power</div>
+      <input type="range" id="f-power" min="0" max="120" step="2" value="10"
+        oninput="setv('v-power', this.value+' hrs')">
+      <div class="scale-lbs"><span>Rarely off (0 hrs)</span><span>Almost always off (120 hrs)</span></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="back(6)">← Back</button>
+      <button class="btn-next" onclick="next(6)">Review →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 7: Review & Submit ── -->
+  <div class="card" id="s7">
+    <p class="s-tag">Final · Step 8 of 8</p>
+    <h2 class="s-title">Review & Submit</h2>
+    <p class="s-desc">Check your responses below, then submit. You can go back to change anything before submitting.</p>
+
+    <div class="notice" id="cfg-notice">
+      ⚙️ <strong>Developer:</strong> Replace <code>YOUR_PROJECT_ID</code> and <code>YOUR_API_KEY</code> in the <code>&lt;script&gt;</code> section at the bottom of this file before deploying.
+    </div>
+
+    <div id="review-body"></div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="back(7)">← Back</button>
+      <button class="btn-next" onclick="submitData()" id="submit-btn">Submit Profile ✓</button>
+    </div>
+  </div>
+
+  <!-- ── SUCCESS ── -->
+  <div class="success" id="success">
+    <div class="s-circle">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--g)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h2 class="s-title">Profile Submitted!</h2>
+    <p class="s-body">Your behavioral profile has been received and securely stored.<br>Reference ID: <span class="ref-id" id="ref-id">—</span></p>
+    <button class="btn-restart" onclick="location.reload()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Start New Submission
+    </button>
+  </div>
+
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ══════════════════════════════════════════
+//  FIREBASE CONFIG — EDIT BEFORE DEPLOYING
+// ══════════════════════════════════════════
+const FB_PROJECT_ID  = 'YOUR_PROJECT_ID';
+const FB_API_KEY     = 'YOUR_API_KEY';
+const FB_COLLECTION  = 'behavioral_profiles';
+// ══════════════════════════════════════════
+
+let step = 0;
+const TOTAL = 8;
+const LABELS = ['ID','Comm','Work','Money','Location','Device','Env','Review'];
+
+let map = null, marker = null, circle = null;
+let coords = { lat: 5.4820, lng: 7.0350 }; // Default: Owerri area
+let locCluster = 'Unknown';
+let goingBack = false;
+
+// ─── NAVIGATION ─────────────────────────
+
+function buildBubbles() {
+  const el = document.getElementById('bubbles');
+  el.innerHTML = LABELS.map((l, i) => `
+    <div class="bwrap">
+      ${i > 0 ? `<div class="bconn ${i <= step ? 'done' : ''}"></div>` : ''}
+      <div class="bubble ${i === step ? 'active' : i < step ? 'done' : ''}" title="${l}">
+        ${i < step ? '✓' : i + 1}
+      </div>
+    </div>`).join('');
+}
+
+function updateHdr() {
+  document.getElementById('prog-fill').style.width = (step / (TOTAL - 1) * 100) + '%';
+  document.getElementById('step-counter').textContent = `Step ${step + 1} of ${TOTAL}`;
+  buildBubbles();
+}
+
+function showCard(n, backwards) {
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('visible', 'back'));
+  const card = document.getElementById('s' + n);
+  card.classList.add('visible');
+  if (backwards) card.classList.add('back');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function next(from) {
+  if (from === 0) {
+    if (!document.getElementById('f-name').value.trim()) {
+      document.getElementById('f-name').focus(); return;
+    }
+    if (!document.getElementById('f-phone').value.trim()) {
+      document.getElementById('f-phone').focus(); return;
+    }
+  }
+  goingBack = false;
+  step = from + 1;
+  updateHdr();
+  showCard(step, false);
+  if (step === 4) setTimeout(initMap, 320);
+  if (step === 7) buildReview();
+}
+
+function back(from) {
+  goingBack = true;
+  step = from - 1;
+  updateHdr();
+  showCard(step, true);
+}
+
+// ─── HELPERS ─────────────────────────────
+
+function setv(id, val) { document.getElementById(id).textContent = val; }
+
+function adj(id, delta, min = 0, max = 999) {
+  const el = document.getElementById(id);
+  let v = parseInt(el.textContent) + delta;
+  v = Math.max(min, Math.min(max, v));
+  el.textContent = v;
+}
+
+function radio(name) {
+  const el = document.querySelector(`input[name="${name}"]:checked`);
+  return el ? parseFloat(el.value) : 0;
+}
+
+// ─── MAP ──────────────────────────────────
+
+function initMap() {
+  if (map) { map.invalidateSize(); return; }
+  map = L.map('map', { zoomControl: true, attributionControl: false })
+    .setView([coords.lat, coords.lng], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+
+  const dotIcon = L.divIcon({
+    className: '',
+    html: `<div style="width:13px;height:13px;background:#00B050;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,176,80,.45)"></div>`,
+    iconSize: [13, 13], iconAnchor: [6.5, 6.5]
+  });
+
+  marker = L.marker([coords.lat, coords.lng], { icon: dotIcon }).addTo(map);
+  const km = parseInt(document.getElementById('f-radius').value);
+  circle = L.circle([coords.lat, coords.lng], {
+    radius: km * 1000,
+    color: '#00B050', fillColor: '#00B050',
+    fillOpacity: 0.08, weight: 2, dashArray: '6 4'
+  }).addTo(map);
+  map.fitBounds(circle.getBounds(), { padding: [24, 24] });
+}
+
+function updateRadius(val) {
+  setv('v-radius', val + ' km');
+  if (circle) {
+    circle.setRadius(val * 1000);
+    map.fitBounds(circle.getBounds(), { padding: [24, 24] });
+  }
+}
+
+async function detectLoc() {
+  const btn = document.getElementById('loc-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite">⊙</span> Detecting…`;
+
+  if (!navigator.geolocation) {
+    alert('Geolocation is not supported by your browser.');
+    btn.disabled = false; btn.innerHTML = 'Detect My Location'; return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+
+    try {
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      const d = await r.json();
+      const a = d.address || {};
+      const suburb = a.suburb || a.neighbourhood || a.city_district || a.village || '';
+      const city   = a.city || a.town || a.county || a.state || '';
+      locCluster = [suburb, city].filter(Boolean).join('_').replace(/\s+/g, '_') || `${coords.lat.toFixed(3)}_${coords.lng.toFixed(3)}`;
+      const display = [suburb, city].filter(Boolean).join(', ') || locCluster;
+      document.getElementById('loc-txt').textContent = display;
+    } catch {
+      locCluster = `${coords.lat.toFixed(3)}_${coords.lng.toFixed(3)}`;
+      document.getElementById('loc-txt').textContent = locCluster;
+    }
+
+    document.getElementById('loc-chip').classList.add('show');
+
+    if (map) {
+      marker.setLatLng([coords.lat, coords.lng]);
+      circle.setLatLng([coords.lat, coords.lng]);
+      map.setView([coords.lat, coords.lng], 12);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = `✓ Location Detected`;
+    btn.style.background = 'var(--g-lt)';
+
+  }, err => {
+    alert('Could not detect location: ' + err.message);
+    btn.disabled = false; btn.textContent = 'Detect My Location';
+  }, { enableHighAccuracy: true, timeout: 12000 });
+}
+
+// ─── COLLECT ─────────────────────────────
+
+function collect() {
+  const phone = document.getElementById('f-phone').value.replace(/\s/g, '').replace('+','');
+  return {
+    metadata: {
+      user_id: phone || 'ANON_' + Date.now(),
+      full_name: document.getElementById('f-name').value.trim(),
+      archetype: 'Self_Reported',
+      location_cluster: locCluster,
+      coordinates: { lat: parseFloat(coords.lat.toFixed(5)), lng: parseFloat(coords.lng.toFixed(5)) },
+      submitted_at: new Date().toISOString()
+    },
+    "1_communication_semantic_meta_patterns": {
+      inbound_outbound_ratio:           parseFloat(parseFloat(document.getElementById('f-ratio').value).toFixed(2)),
+      unlisted_inbound_call_count_30d:  parseInt(document.getElementById('f-unlisted').textContent),
+      contact_list_completion_rate:     parseFloat((document.getElementById('f-contacts').value / 100).toFixed(2)),
+      email_domain_age_years:           parseFloat(document.getElementById('f-email-age').value),
+      financial_keyword_alert_density:  radio('r-alerts'),
+      calendar_event_cancellation_rate: parseFloat((document.getElementById('f-cancel').value / 100).toFixed(2))
+    },
+    "2_professional_educational_trajectory": {
+      skill_market_demand_index:               radio('r-skill'),
+      profile_modification_velocity_90d:       parseInt(document.getElementById('f-profvel').textContent),
+      peer_group_mean_credit_tier:             parseFloat(document.getElementById('f-peer').value),
+      learning_platform_course_completion_rate: parseFloat((document.getElementById('f-learn').value / 100).toFixed(2))
+    },
+    "3_granular_transactional_velocity": {
+      liquidity_decay_rate_24h:           parseFloat((document.getElementById('f-decay').value / 100).toFixed(2)),
+      liquidity_drawdown_days_to_baseline: parseInt(document.getElementById('f-drawdown').textContent),
+      merchant_category_dispersion_index: radio('r-merch'),
+      account_buffer_zone_days_30d:       parseInt(document.getElementById('f-buffer').textContent),
+      inflow_time_variance_hours:         radio('r-inflow')
+    },
+    "4_spatial_temporal_mobility": {
+      radius_of_gyration_km:              parseFloat(document.getElementById('f-radius').value),
+      day_night_coordinate_predictability: parseFloat((document.getElementById('f-pred').value / 100).toFixed(2)),
+      financial_border_crossing_ratio:    radio('r-border'),
+      high_risk_poi_co_location_hours_30d: parseFloat(document.getElementById('f-poi').textContent)
+    },
+    "5_lifestyle_maintenance_asset_profiles": {
+      preventative_maintenance_log_interval_days: parseInt(document.getElementById('f-maint').value),
+      os_patch_installation_latency_hours:         parseInt(document.querySelector('input[name="r-os"]:checked')?.value || 24),
+      device_storage_saturation_percentage:        parseFloat((document.getElementById('f-storage').value / 100).toFixed(2)),
+      screen_damage_history_count:                 parseInt(document.getElementById('f-screen').textContent)
+    },
+    "6_environmental_macro_exposure": {
+      hyper_local_inflation_index_premium: parseFloat((document.getElementById('f-inflation').value / 100).toFixed(2)),
+      employer_vulnerability_index:        radio('r-emp'),
+      power_grid_failure_downtime_hours_weekly: parseInt(document.getElementById('f-power').value)
+    }
+  };
+}
+
+// ─── REVIEW ──────────────────────────────
+
+function buildReview() {
+  const d = collect();
+  const sections = [
+    { t: 'Identity',         o: d.metadata,                                  keys: ['user_id','location_cluster'] },
+    { t: 'Communication',    o: d['1_communication_semantic_meta_patterns']              },
+    { t: 'Professional',     o: d['2_professional_educational_trajectory']               },
+    { t: 'Financial Habits', o: d['3_granular_transactional_velocity']                   },
+    { t: 'Mobility',         o: d['4_spatial_temporal_mobility']                         },
+    { t: 'Device & Lifestyle', o: d['5_lifestyle_maintenance_asset_profiles']            },
+    { t: 'Environment',      o: d['6_environmental_macro_exposure']                      }
+  ];
+
+  document.getElementById('review-body').innerHTML = sections.map(s => {
+    const entries = s.keys
+      ? Object.fromEntries(s.keys.map(k => [k, s.o[k]]))
+      : s.o;
+    return `<div class="rev-sec">
+      <div class="rev-sec-hd">${s.t}</div>
+      ${Object.entries(entries).map(([k, v]) => {
+        const label = k.replace(/_/g, ' ');
+        const display = typeof v === 'number'
+          ? (Number.isInteger(v) ? v : v.toFixed(2))
+          : String(v);
+        return `<div class="rev-row">
+          <span class="rev-k">${label}</span>
+          <span class="rev-v">${display}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('<div class="divider"></div>');
+}
+
+// ─── FIRESTORE CONVERTER ─────────────────
+
+function fsVal(v) {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === 'boolean')  return { booleanValue: v };
+  if (typeof v === 'number')   return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (typeof v === 'string')   return { stringValue: v };
+  if (Array.isArray(v))        return { arrayValue: { values: v.map(fsVal) } };
+  if (typeof v === 'object')   return { mapValue: { fields: fsFields(v) } };
+  return { stringValue: String(v) };
+}
+
+function fsFields(obj) {
+  const f = {};
+  for (const [k, v] of Object.entries(obj)) f[k] = fsVal(v);
+  return f;
+}
+
+// ─── SUBMIT ───────────────────────────────
+
+async function submitData() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const data = collect();
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT_ID}/databases/(default)/documents/${FB_COLLECTION}?key=${FB_API_KEY}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: fsFields(data) })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+
+    const result = await res.json();
+    const refId = result.name?.split('/').pop() || ('REF-' + Date.now());
+
+    // Show success
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('visible'));
+    document.getElementById('success').classList.add('show');
+    document.getElementById('ref-id').textContent = refId;
+    document.getElementById('prog-fill').style.width = '100%';
+
+  } catch (err) {
+    console.error(err);
+    alert('Submission failed: ' + err.message + '\n\nMake sure FB_PROJECT_ID and FB_API_KEY are configured correctly in the script.');
+    btn.disabled = false;
+    btn.textContent = 'Submit Profile ✓';
+  }
+}
+
+// ─── INIT ─────────────────────────────────
+
+updateHdr();
+
+/* spin keyframe for detect button */
+const st = document.createElement('style');
+st.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+document.head.appendChild(st);
+</script>
+</body>
+</html>
