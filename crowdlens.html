@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrowdLens — We See What the Banks Miss</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --g: #00C853;
+      --g2: #69F0AE;
+      --g-dim: rgba(0,200,83,0.18);
+      --g-glow: rgba(0,200,83,0.28);
+      --navy: #091521;
+      --navy2: #0D1E2F;
+      --navy3: #162B42;
+      --slate: #304D68;
+      --slate2: #6B8DA8;
+      --text: #E4EEF8;
+      --text-dim: rgba(228,238,248,0.58);
+      --text-dimmer: rgba(228,238,248,0.28);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--navy);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ─── CANVAS ─── */
+    #particle-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 3rem;
+      background: rgba(9,21,33,0.82);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(0,200,83,0.07);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+    }
+
+    .logo-wordmark {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: -0.03em;
+    }
+    .logo-wordmark .crowd { font-weight: 500; color: var(--text); }
+    .logo-wordmark .lens  { font-weight: 800; color: var(--g); }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2.25rem;
+    }
+
+    nav ul a {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-decoration: none;
+      letter-spacing: 0.01em;
+      transition: color 0.2s;
+    }
+    nav ul a:hover { color: var(--g); }
+
+    .nav-pill {
+      background: var(--g);
+      color: var(--navy) !important;
+      padding: 0.5rem 1.3rem !important;
+      border-radius: 100px !important;
+      font-weight: 700 !important;
+      transition: background 0.2s, transform 0.2s !important;
+    }
+    .nav-pill:hover { background: var(--g2) !important; transform: translateY(-1px); }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 3rem;
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 8rem 3rem 4rem;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0,200,83,0.08);
+      border: 1px solid rgba(0,200,83,0.22);
+      border-radius: 100px;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--g);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1.75rem;
+      opacity: 0;
+      animation: fadeUp 0.6s 0.15s ease forwards;
+    }
+
+    .pulse-dot {
+      width: 6px; height: 6px;
+      background: var(--g);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.6rem, 4.5vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.06;
+      letter-spacing: -0.035em;
+      margin-bottom: 1.5rem;
+    }
+
+    .h1-line { display: block; opacity: 0; animation: fadeUp 0.65s ease forwards; }
+    .h1-line-1 { animation-delay: 0.35s; }
+    .h1-line-2 { animation-delay: 0.5s; color: var(--g); }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      line-height: 1.75;
+      color: var(--text-dim);
+      max-width: 480px;
+      margin-bottom: 2.5rem;
+      opacity: 0;
+      animation: fadeUp 0.65s 0.65s ease forwards;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 0.875rem;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.65s 0.8s ease forwards;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.85rem 1.65rem;
+      border-radius: 100px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-2px); }
+
+    .btn-green {
+      background: var(--g);
+      color: var(--navy);
+      box-shadow: 0 4px 22px rgba(0,200,83,0.28);
+    }
+    .btn-green:hover { background: var(--g2); box-shadow: 0 8px 32px rgba(0,200,83,0.44); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid rgba(228,238,248,0.18);
+    }
+    .btn-ghost:hover { border-color: var(--g); color: var(--g); }
+
+    /* ─── HERO LENS SVG ─── */
+    .hero-right {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      animation: fadeIn 1.1s 0.5s ease forwards;
+    }
+
+    .lens-wrap {
+      width: min(520px, 100%);
+      aspect-ratio: 1;
+    }
+
+    .svg-float   { animation: float 7s ease-in-out infinite; transform-origin: center; }
+    .orbit-cw    { transform-origin: 250px 250px; animation: spinCW  14s linear infinite; }
+    .orbit-ccw   { transform-origin: 250px 250px; animation: spinCCW 20s linear infinite; }
+    .lens-glow   { animation: lensBreath 3.5s ease-in-out infinite; }
+
+    /* ─── STATS STRIP ─── */
+    .stats-strip {
+      position: relative; z-index: 1;
+      background: var(--navy2);
+      border-top: 1px solid rgba(0,200,83,0.09);
+      border-bottom: 1px solid rgba(0,200,83,0.09);
+      padding: 3.5rem 3rem;
+    }
+
+    .stats-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr 1px 1fr;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .stat { text-align: center; padding: 1rem 2rem; }
+
+    .stat-n {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.2rem, 3.5vw, 3.2rem);
+      font-weight: 800;
+      color: var(--g);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-l {
+      font-size: 0.83rem;
+      color: var(--text-dim);
+      line-height: 1.55;
+      max-width: 200px;
+      margin: 0 auto;
+    }
+
+    .v-divider { background: rgba(0,200,83,0.14); height: 56px; align-self: center; }
+
+    /* ─── HOW IT WORKS ─── */
+    .section {
+      position: relative; z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 6rem 3rem;
+    }
+
+    .sec-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--g);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.875rem;
+    }
+
+    .sec-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.7rem, 2.8vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+
+    .sec-sub {
+      font-size: 0.975rem;
+      color: var(--text-dim);
+      line-height: 1.75;
+      max-width: 520px;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-top: 3.5rem;
+    }
+
+    .step-card {
+      background: var(--navy2);
+      border: 1px solid rgba(255,255,255,0.055);
+      border-radius: 18px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .step-card:hover {
+      border-color: rgba(0,200,83,0.28);
+      transform: translateY(-5px);
+    }
+    .step-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--g) 50%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .step-card:hover::after { opacity: 1; }
+
+    .step-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 3.8rem;
+      font-weight: 800;
+      color: rgba(0,200,83,0.1);
+      line-height: 1;
+      letter-spacing: -0.05em;
+      margin-bottom: 1.25rem;
+    }
+
+    .step-icon-box {
+      width: 42px; height: 42px;
+      background: rgba(0,200,83,0.1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+    .step-icon-box svg { width: 20px; height: 20px; stroke: var(--g); }
+
+    .step-card h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+      letter-spacing: -0.01em;
+    }
+
+    .step-card p {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      line-height: 1.65;
+    }
+
+    /* ─── WAITLIST ─── */
+    .waitlist-wrap {
+      position: relative;
+      z-index: 1;
+      padding: 6rem 3rem;
+    }
+    .waitlist-wrap::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 55% at 50% 50%, rgba(0,200,83,0.035) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .wl-inner { max-width: 1200px; margin: 0 auto; }
+
+    .wl-header { text-align: center; margin-bottom: 4rem; }
+    .wl-header .sec-sub { margin: 0 auto; }
+
+    .wl-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    /* Business card */
+    .card-biz {
+      background: var(--navy2);
+      border: 1px solid rgba(0,200,83,0.18);
+      border-left: 3px solid var(--g);
+      border-radius: 20px;
+      padding: 2.5rem;
+    }
+
+    /* Investor card */
+    .card-inv {
+      background: linear-gradient(145deg, rgba(0,200,83,0.11) 0%, rgba(13,30,47,0.92) 60%);
+      border: 1px solid rgba(0,200,83,0.32);
+      border-radius: 20px;
+      padding: 2.5rem;
+    }
+
+    .card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      padding: 0.28rem 0.75rem;
+      border-radius: 100px;
+      margin-bottom: 1.5rem;
+    }
+    .badge-biz { background: rgba(0,200,83,0.1); color: var(--g); border: 1px solid rgba(0,200,83,0.2); }
+    .badge-inv { background: var(--g); color: var(--navy); }
+
+    .card-sh {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--g);
+      letter-spacing: 0.02em;
+      margin-bottom: 0.45rem;
+    }
+
+    .card-h {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.22;
+      margin-bottom: 1rem;
+    }
+
+    .card-body {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      line-height: 1.72;
+      margin-bottom: 2rem;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.2rem; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+
+    .form-field {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      background: rgba(255,255,255,0.045);
+      border: 1.5px solid rgba(255,255,255,0.09);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .form-field::placeholder { color: var(--text-dimmer); }
+    .form-field:focus {
+      border-color: var(--g);
+      background: rgba(0,200,83,0.045);
+    }
+    .form-field.error { border-color: #ff5252 !important; }
+    select.form-field { appearance: none; cursor: pointer; }
+    select.form-field:not([data-chosen]) { color: var(--text-dimmer); }
+
+    .btn-full {
+      width: 100%;
+      justify-content: center;
+      padding: 0.95rem;
+      font-size: 0.95rem;
+      border-radius: 12px;
+    }
+
+    .btn-inv-cta {
+      background: white;
+      color: var(--navy);
+      box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+    }
+    .btn-inv-cta:hover { background: var(--g2); }
+
+    .form-note {
+      font-size: 0.72rem;
+      color: var(--text-dimmer);
+      text-align: center;
+      margin-top: 0.75rem;
+      line-height: 1.5;
+    }
+
+    /* ─── SUCCESS STATE ─── */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 2.5rem 1rem;
+      animation: fadeUp 0.5s ease forwards;
+    }
+    .success-state.active { display: block; }
+
+    .success-ring {
+      width: 68px; height: 68px;
+      background: rgba(0,200,83,0.12);
+      border: 2px solid var(--g);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    .success-ring svg { width: 28px; height: 28px; stroke: var(--g); }
+
+    .success-state h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .success-state p { font-size: 0.875rem; color: var(--text-dim); line-height: 1.6; }
+
+    /* ─── TRUST BAR ─── */
+    .trust-bar {
+      position: relative; z-index: 1;
+      background: var(--navy2);
+      border-top: 1px solid rgba(255,255,255,0.045);
+      padding: 1.75rem 3rem;
+    }
+
+    .trust-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      color: var(--text-dimmer);
+      white-space: nowrap;
+    }
+    .trust-item svg { width: 15px; height: 15px; stroke: var(--g); flex-shrink: 0; fill: none; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid rgba(255,255,255,0.045);
+      padding: 2.5rem 3rem;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .footer-info { display: flex; flex-direction: column; gap: 0.5rem; }
+    .footer-tag-line { font-size: 0.78rem; color: var(--text-dimmer); line-height: 1.55; }
+
+    .footer-links {
+      display: flex;
+      gap: 1.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .footer-link {
+      font-size: 0.78rem;
+      color: var(--text-dimmer);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-link:hover { color: var(--g); }
+
+    /* ─── REVEAL ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.72s ease, transform 0.72s ease;
+    }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+
+    /* ─── KEYFRAMES ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-14px); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.45; transform: scale(0.8); }
+    }
+    @keyframes spinCW  { to { transform: rotate(360deg); } }
+    @keyframes spinCCW { to { transform: rotate(-360deg); } }
+    @keyframes lensBreath {
+      0%, 100% { filter: drop-shadow(0 0 18px rgba(0,200,83,0.45)); }
+      50%       { filter: drop-shadow(0 0 44px rgba(0,200,83,0.75)); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(3px); }
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 960px) {
+      nav { padding: 1rem 1.5rem; }
+      nav ul { display: none; }
+      .hero { grid-template-columns: 1fr; padding: 7rem 1.5rem 3rem; gap: 2rem; }
+      .hero-right { order: -1; }
+      .lens-wrap { max-width: 280px; margin: 0 auto; }
+      .stats-inner { grid-template-columns: 1fr; gap: 0; }
+      .v-divider { display: none; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .wl-grid { grid-template-columns: 1fr; }
+      .section, .waitlist-wrap, .stats-strip { padding-left: 1.5rem; padding-right: 1.5rem; }
+      .trust-inner { gap: 1.5rem; }
+      footer { padding: 2rem 1.5rem; }
+      .footer-inner { flex-direction: column; gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+
+<!-- ═══════════════════════════════ NAV ═══════════════════════════════ -->
+<nav>
+  <a href="#" class="logo">
+    <!-- Lens Logo SVG -->
+    <svg width="46" height="30" viewBox="0 0 60 38" fill="none">
+      <defs>
+        <clipPath id="nav-lc"><circle cx="22" cy="19" r="17"/></clipPath>
+      </defs>
+      <circle cx="22" cy="19" r="17" stroke="#00C853" stroke-width="1.4" fill="rgba(0,200,83,0.06)"/>
+      <circle cx="38" cy="19" r="17" stroke="#00C853" stroke-width="1.4" fill="rgba(0,200,83,0.06)"/>
+      <circle cx="38" cy="19" r="17" clip-path="url(#nav-lc)" fill="#00C853" opacity="0.88"/>
+      <ellipse cx="28" cy="13.5" rx="5" ry="2.5" fill="white" opacity="0.22" clip-path="url(#nav-lc)"/>
+    </svg>
+    <span class="logo-wordmark">
+      <span class="crowd">Crowd</span><span class="lens">Lens</span>
+    </span>
+  </a>
+
+  <ul>
+    <li><a href="#how-it-works">How It Works</a></li>
+    <li><a href="#waitlist">Businesses</a></li>
+    <li><a href="#waitlist">Investors</a></li>
+    <li><a href="#waitlist" class="nav-pill">Get Early Access</a></li>
+  </ul>
+</nav>
+
+<!-- ═══════════════════════════════ HERO ═══════════════════════════════ -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">
+      <span class="pulse-dot"></span>
+      Built for Nigeria's Informal Economy
+    </div>
+
+    <h1>
+      <span class="h1-line h1-line-1">We see what</span>
+      <span class="h1-line h1-line-2">the banks miss.</span>
+    </h1>
+
+    <p class="hero-sub">
+      Traditional credit systems are blind to how informal businesses actually operate. CrowdLens uses advanced AI to process real behavioral data — and opens the floor to everyday people to fund the businesses they trust.
+    </p>
+
+    <div class="hero-ctas">
+      <a href="#waitlist" class="btn btn-green">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7l5 5-5 5M6 12h12"/></svg>
+        Join as a Business
+      </a>
+      <a href="#waitlist" class="btn btn-ghost">Join as an Investor</a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="lens-wrap">
+      <!-- Animated Lens Diagram -->
+      <svg class="svg-float" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="h-lc1"><circle cx="205" cy="250" r="130"/></clipPath>
+          <radialGradient id="lens-rg" cx="42%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#69F0AE" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="#00C853" stop-opacity="0.72"/>
+          </radialGradient>
+          <filter id="lens-gf" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="10"/>
+          </filter>
+          <filter id="outer-gf" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="18"/>
+          </filter>
+        </defs>
+
+        <!-- Outer atmosphere glow -->
+        <circle cx="250" cy="250" r="200" fill="rgba(0,200,83,0.025)"/>
+
+        <!-- Orbit rings -->
+        <g class="orbit-cw">
+          <circle cx="250" cy="250" r="205" stroke="rgba(0,200,83,0.07)" stroke-width="1" stroke-dasharray="5 9"/>
+          <circle cx="250" cy="45" r="5" fill="rgba(0,200,83,0.55)"/>
+          <circle cx="455" cy="250" r="3.5" fill="rgba(0,200,83,0.4)"/>
+          <circle cx="250" cy="455" r="5" fill="rgba(0,200,83,0.55)"/>
+          <circle cx="45"  cy="250" r="3.5" fill="rgba(0,200,83,0.4)"/>
+          <circle cx="395" cy="105" r="3" fill="rgba(0,200,83,0.45)"/>
+          <circle cx="395" cy="395" r="3" fill="rgba(0,200,83,0.45)"/>
+          <circle cx="105" cy="105" r="3" fill="rgba(0,200,83,0.45)"/>
+          <circle cx="105" cy="395" r="3" fill="rgba(0,200,83,0.45)"/>
+        </g>
+
+        <g class="orbit-ccw">
+          <circle cx="250" cy="250" r="158" stroke="rgba(0,200,83,0.055)" stroke-width="1" stroke-dasharray="2 12"/>
+          <circle cx="250" cy="92"  r="3" fill="rgba(105,240,174,0.5)"/>
+          <circle cx="408" cy="250" r="2.5" fill="rgba(105,240,174,0.5)"/>
+          <circle cx="250" cy="408" r="3" fill="rgba(105,240,174,0.5)"/>
+          <circle cx="92"  cy="250" r="2.5" fill="rgba(105,240,174,0.5)"/>
+        </g>
+
+        <!-- Left circle: Data -->
+        <circle cx="205" cy="250" r="130" stroke="rgba(0,200,83,0.22)" stroke-width="1.5" fill="rgba(0,200,83,0.04)"/>
+        <!-- Right circle: Community -->
+        <circle cx="295" cy="250" r="130" stroke="rgba(0,200,83,0.22)" stroke-width="1.5" fill="rgba(0,200,83,0.04)"/>
+
+        <!-- Lens glow behind -->
+        <circle cx="295" cy="250" r="130" clip-path="url(#h-lc1)" fill="url(#lens-rg)" filter="url(#lens-gf)" opacity="0.55"/>
+        <!-- Lens fill -->
+        <circle cx="295" cy="250" r="130" clip-path="url(#h-lc1)" fill="url(#lens-rg)" class="lens-glow" opacity="0.82"/>
+        <!-- Specular highlights -->
+        <ellipse cx="236" cy="218" rx="30" ry="16" fill="white" opacity="0.16" clip-path="url(#h-lc1)"/>
+        <ellipse cx="248" cy="228" rx="9" ry="5.5" fill="white" opacity="0.28" clip-path="url(#h-lc1)"/>
+
+        <!-- Label: DATA -->
+        <text x="136" y="238" font-family="Syne,sans-serif" font-size="10" font-weight="700"
+          fill="rgba(228,238,248,0.45)" text-anchor="middle" letter-spacing="2">BEHAVIORAL</text>
+        <text x="136" y="254" font-family="Syne,sans-serif" font-size="10" font-weight="700"
+          fill="rgba(228,238,248,0.45)" text-anchor="middle" letter-spacing="2">DATA</text>
+
+        <!-- Label: COMMUNITY -->
+        <text x="364" y="238" font-family="Syne,sans-serif" font-size="10" font-weight="700"
+          fill="rgba(228,238,248,0.45)" text-anchor="middle" letter-spacing="2">COMMUNITY</text>
+        <text x="364" y="254" font-family="Syne,sans-serif" font-size="10" font-weight="700"
+          fill="rgba(228,238,248,0.45)" text-anchor="middle" letter-spacing="2">CROWD</text>
+
+        <!-- Lens center label -->
+        <text x="250" y="245" font-family="Syne,sans-serif" font-size="11" font-weight="800"
+          fill="#091521" text-anchor="middle" letter-spacing="1.5">AI</text>
+        <text x="250" y="261" font-family="Syne,sans-serif" font-size="11" font-weight="800"
+          fill="#091521" text-anchor="middle" letter-spacing="1.5">LENS</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ STATS ═══════════════════════════════ -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat reveal">
+      <div class="stat-n">94%</div>
+      <div class="stat-l">of Nigerian informal businesses are denied traditional bank credit</div>
+    </div>
+    <div class="v-divider"></div>
+    <div class="stat reveal" style="transition-delay:0.12s">
+      <div class="stat-n">₦41T</div>
+      <div class="stat-l">Nigeria's informal economy — largely excluded from formal financial services</div>
+    </div>
+    <div class="v-divider"></div>
+    <div class="stat reveal" style="transition-delay:0.24s">
+      <div class="stat-n">0 docs</div>
+      <div class="stat-l">needed to prove creditworthiness on CrowdLens — just your real operational data</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ HOW IT WORKS ═══════════════════════════════ -->
+<div id="how-it-works" style="position:relative;z-index:1">
+  <div class="section">
+    <div class="sec-tag reveal">The Platform</div>
+    <h2 class="sec-title reveal">Not a loan app.<br>A clarity engine.</h2>
+    <p class="sec-sub reveal">We don't see paperwork. We see patterns. Real behavioral data, scored by AI, funded by community.</p>
+
+    <div class="steps-grid">
+      <div class="step-card reveal">
+        <div class="step-num">01</div>
+        <div class="step-icon-box">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <h3>Connect your reality</h3>
+        <p>Businesses link daily sales data, mobile money flows, and supplier records. Our physical POS agents verify on the ground. No bank statement needed.</p>
+      </div>
+
+      <div class="step-card reveal" style="transition-delay:0.14s">
+        <div class="step-num">02</div>
+        <div class="step-icon-box">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+        </div>
+        <h3>AI calculates the truth</h3>
+        <p>Our AI processes hundreds of behavioral signals to produce a verified CrowdScore™ — a creditworthiness rating the banks have never been able to see.</p>
+      </div>
+
+      <div class="step-card reveal" style="transition-delay:0.28s">
+        <div class="step-num">03</div>
+        <div class="step-icon-box">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <h3>Community funds it</h3>
+        <p>Everyday investors buy CBN-compliant micro-bonds. The business gets funded. The community earns returns. Your neighborhood, backed by data and funded by you.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ WAITLIST ═══════════════════════════════ -->
+<div id="waitlist" class="waitlist-wrap">
+  <div class="wl-inner">
+    <div class="wl-header">
+      <div class="sec-tag reveal">Early Access</div>
+      <h2 class="sec-title reveal">Two paths. One lens.</h2>
+      <p class="sec-sub reveal">Join the platform building credit infrastructure for Nigeria's real economy. Choose your path below.</p>
+    </div>
+
+    <div class="wl-grid">
+      <!-- ── BUSINESS CARD ── -->
+      <div class="card-biz reveal">
+        <div class="card-badge badge-biz">🏪 For Local Businesses</div>
+        <div class="card-sh">Stop waiting for bank approval.</div>
+        <h2 class="card-h">Let your data speak.<br>Let your community fund you.</h2>
+        <p class="card-body">Connect your daily business data to CrowdLens and let our AI prove your creditworthiness so your community can fund you.</p>
+
+        <div id="biz-form">
+          <div class="form-group">
+            <div class="form-row">
+              <input class="form-field" type="text"  id="biz-name"  placeholder="Your name">
+              <input class="form-field" type="text"  id="biz-bname" placeholder="Business name">
+            </div>
+            <input class="form-field" type="email" id="biz-email" placeholder="Email address">
+            <select class="form-field" id="biz-type" onchange="markChosen(this)">
+              <option value="">Business type</option>
+              <option>Retail / Trade</option>
+              <option>Food &amp; Beverage</option>
+              <option>Transport &amp; Logistics</option>
+              <option>Market Vendor</option>
+              <option>Services</option>
+              <option>Manufacturing</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <button class="btn btn-green btn-full" onclick="submitWaitlist('biz')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7l5 5-5 5M6 12h12"/></svg>
+            Join as a Business
+          </button>
+          <p class="form-note">🔒 No credit history needed. No paperwork. Just your real data.</p>
+        </div>
+
+        <div class="success-state" id="biz-success">
+          <div class="success-ring">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <h3>You're on the list! 🎉</h3>
+          <p>We'll reach out when CrowdLens launches in your area. Get ready to access capital on your own terms.</p>
+        </div>
+      </div>
+
+      <!-- ── INVESTOR CARD ── -->
+      <div class="card-inv reveal" style="transition-delay:0.18s">
+        <div class="card-badge badge-inv">📈 For Community Investors</div>
+        <div class="card-sh">Invest in what you can actually see.</div>
+        <h2 class="card-h">Back your block.<br>Earn real returns.</h2>
+        <p class="card-body">Buy secure micro-bonds in verified local businesses. Our AI and physical POS agents do the background checks. You earn the returns.</p>
+
+        <div id="inv-form">
+          <div class="form-group">
+            <div class="form-row">
+              <input class="form-field" type="text" id="inv-name"     placeholder="Your name">
+              <input class="form-field" type="text" id="inv-location" placeholder="Your city / area">
+            </div>
+            <input class="form-field" type="email" id="inv-email" placeholder="Email address">
+            <select class="form-field" id="inv-range" onchange="markChosen(this)">
+              <option value="">Monthly investment range</option>
+              <option>₦5,000 – ₦25,000</option>
+              <option>₦25,000 – ₦100,000</option>
+              <option>₦100,000 – ₦500,000</option>
+              <option>₦500,000+</option>
+            </select>
+          </div>
+          <button class="btn btn-inv-cta btn-full" onclick="submitWaitlist('inv')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7l5 5-5 5M6 12h12"/></svg>
+            Join as an Investor
+          </button>
+          <p class="form-note">🔒 CBN-compliant micro-bonds · AI-verified businesses · Real community returns.</p>
+        </div>
+
+        <div class="success-state" id="inv-success">
+          <div class="success-ring">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <h3>Welcome to CrowdLens! 🚀</h3>
+          <p>We'll notify you as soon as verified businesses in your area go live for investment. First access, real returns.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ TRUST BAR ═══════════════════════════════ -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+      </svg>
+      <span>CBN-Compliant Framework</span>
+    </div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+      <span>OPay Ecosystem Integration</span>
+    </div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <span>AI-Verified CrowdScore™</span>
+    </div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      <span>Physical POS Agent Network</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ FOOTER ═══════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-info">
+      <a href="#" class="logo">
+        <svg width="38" height="24" viewBox="0 0 60 38" fill="none">
+          <defs><clipPath id="f-lc"><circle cx="22" cy="19" r="17"/></clipPath></defs>
+          <circle cx="22" cy="19" r="17" stroke="#00C853" stroke-width="1.4" fill="rgba(0,200,83,0.06)"/>
+          <circle cx="38" cy="19" r="17" stroke="#00C853" stroke-width="1.4" fill="rgba(0,200,83,0.06)"/>
+          <circle cx="38" cy="19" r="17" clip-path="url(#f-lc)" fill="#00C853" opacity="0.88"/>
+        </svg>
+        <span class="logo-wordmark"><span class="crowd">Crowd</span><span class="lens">Lens</span></span>
+      </a>
+      <p class="footer-tag-line">
+        Built for Nigeria's ₦41T informal economy.<br>
+        Powered by data. Funded by community.
+      </p>
+    </div>
+    <div class="footer-links">
+      <a href="#" class="footer-link">Privacy</a>
+      <a href="#" class="footer-link">Terms</a>
+      <a href="#" class="footer-link">Contact</a>
+      <span class="footer-tag-line">© 2025 CrowdLens</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════ SCRIPTS ═══════════════════════════════ -->
+<script>
+  /* ── PARTICLE CANVAS ── */
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, pts = [];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function Pt() {
+    this.x  = Math.random() * W;
+    this.y  = Math.random() * H;
+    this.r  = Math.random() * 1.4 + 0.4;
+    this.vx = (Math.random() - 0.5) * 0.28;
+    this.vy = (Math.random() - 0.5) * 0.28;
+    this.a  = Math.random() * 0.45 + 0.1;
+  }
+
+  function initPts() {
+    pts = Array.from({ length: 110 }, () => new Pt());
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x;
+        const dy = pts[i].y - pts[j].y;
+        const d  = Math.hypot(dx, dy);
+        if (d < 95) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(0,200,83,${0.055 * (1 - d / 95)})`;
+          ctx.lineWidth = 0.5;
+          ctx.moveTo(pts[i].x, pts[i].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    for (const p of pts) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0,200,83,${p.a})`;
+      ctx.fill();
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  resize(); initPts(); draw();
+  window.addEventListener('resize', () => { resize(); initPts(); });
+
+  /* ── SCROLL REVEAL ── */
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  /* ── SELECT STYLE ── */
+  function markChosen(el) {
+    el.setAttribute('data-chosen', '1');
+    el.style.color = 'var(--text)';
+  }
+
+  /* ── FORM SUBMIT ── */
+  function submitWaitlist(type) {
+    const emailId = type === 'biz' ? 'biz-email' : 'inv-email';
+    const emailEl = document.getElementById(emailId);
+    const email   = emailEl.value.trim();
+
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      emailEl.classList.add('error');
+      emailEl.style.animation = 'shake 0.4s ease';
+      setTimeout(() => {
+        emailEl.classList.remove('error');
+        emailEl.style.animation = '';
+      }, 600);
+      emailEl.focus();
+      return;
+    }
+
+    // Persist locally
+    const key  = `crowdlens_${type}`;
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    const nameId = type === 'biz' ? 'biz-name' : 'inv-name';
+    list.push({
+      name:  document.getElementById(nameId).value.trim(),
+      email: email,
+      ts:    Date.now()
+    });
+    localStorage.setItem(key, JSON.stringify(list));
+
+    // Swap form → success
+    document.getElementById(`${type}-form`).style.display = 'none';
+    document.getElementById(`${type}-success`).classList.add('active');
+  }
+</script>
+</body>
+</html>
